@@ -59,6 +59,8 @@ redis:
   vm_groups:
     default:
       vm_spec: *default_single_core
+    clients:
+      vm_spec: *default_single_core
 """
 
 
