@@ -83,6 +83,11 @@ flags.DEFINE_string(
     'csv_path',
     None,
     'A path to write CSV-format results')
+flags.DEFINE_enum(
+    'csv_write_mode',
+    'w',
+    ['w', 'a'],
+    'Open mode for file specified by --csv_path. Default: overwrite file')
 
 flags.DEFINE_string(
     'bigquery_table',
@@ -287,8 +292,9 @@ class CSVPublisher(SamplePublisher):
                      'product_name', 'official', 'owner', 'run_uri',
                      'sample_uri')
 
-  def __init__(self, path):
+  def __init__(self, path, mode='w'):
     self._path = path
+    self.mode = mode
 
   def PublishSamples(self, samples):
     samples = list(samples)
@@ -297,9 +303,10 @@ class CSVPublisher(SamplePublisher):
         set(key for sample in samples for key in sample['metadata']))
 
     logging.info('Writing CSV results to %s', self._path)
-    with open(self._path, 'w') as fp:
+    with open(self._path, self.mode) as fp:
       writer = csv.DictWriter(fp, list(self._DEFAULT_FIELDS) + meta_keys)
-      writer.writeheader()
+      if fp.tell() == 0:
+        writer.writeheader()
 
       for sample in samples:
         d = {}
@@ -904,7 +911,7 @@ class SampleCollector(object):
       publishers.append(CloudStoragePublisher(FLAGS.cloud_storage_bucket,
                                               gsutil_path=FLAGS.gsutil_path))
     if FLAGS.csv_path:
-      publishers.append(CSVPublisher(FLAGS.csv_path))
+      publishers.append(CSVPublisher(FLAGS.csv_path, FLAGS.csv_write_mode))
 
     if FLAGS.es_uri:
       publishers.append(ElasticsearchPublisher(es_uri=FLAGS.es_uri,
