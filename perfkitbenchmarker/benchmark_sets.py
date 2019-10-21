@@ -188,7 +188,6 @@ BENCHMARK_SETS = {
             'mongodb_ycsb',
             'netperf',
             'redis',
-            'sysbench',
         ]
     },
     'mellanox_set': {
