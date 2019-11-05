@@ -22,4 +22,4 @@ setup(
     scripts=['pkb.py'],
     install_requires=['absl-py',
                       'jinja2>=2.7',
-                      'setuptools'])
+                      'setuptools', 'six>=1.12.0'])

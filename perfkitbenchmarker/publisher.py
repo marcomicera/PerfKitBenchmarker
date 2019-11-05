@@ -31,6 +31,7 @@ import logging
 import math
 import operator
 import pprint
+import re
 import sys
 import time
 import uuid
@@ -41,6 +42,7 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import log_util
 from perfkitbenchmarker import version
 from perfkitbenchmarker import vm_util
+from prometheus_client import Info, CollectorRegistry, Summary
 import six
 from six.moves import urllib
 import six.moves.http_client as httplib
@@ -88,6 +90,15 @@ flags.DEFINE_enum(
     'w',
     ['w', 'a'],
     'Open mode for file specified by --csv_path. Default: overwrite file')
+flags.DEFINE_string(
+    'om_path',
+    None,
+    'A path to write OpenMetrics-format results')
+flags.DEFINE_enum(
+    'om_write_mode',
+    'w',
+    ['w', 'a'],
+    'Open mode for file specified by --om_path. Default: overwrite file')
 
 flags.DEFINE_string(
     'bigquery_table',
@@ -296,6 +307,9 @@ class CSVPublisher(SamplePublisher):
     self._path = path
     self.mode = mode
 
+  def __repr__(self):
+    return '<{0} file={1} mode={2}>'.format(type(self).__name__, self._path, self.mode)
+
   def PublishSamples(self, samples):
     samples = list(samples)
     # Union of all metadata keys.
@@ -435,6 +449,94 @@ class PrettyPrintStreamPublisher(SamplePublisher):
     value = result.getvalue()
     logging.debug('Pretty-printing results to %s:\n%s', self.stream, value)
     self.stream.write(value)
+
+
+def toSnakeCase(str):
+    return str.replace(" ", "_")
+
+
+class OpenMetricsPublisher(SamplePublisher):
+  """Writes samples following the OpenMetrics format to an output stream, defaulting to stdout.
+
+  Example output:
+
+    # HELP http_requests_total The total number of HTTP requests.
+    # TYPE http_requests_total counter
+    http_requests_total{method="post",code="200"} 1027 1395066363000
+    http_requests_total{method="post",code="400"}    3 1395066363000
+
+    # Escaping in label values:
+    msdos_file_access_time_seconds{path="C:\\DIR\\FILE.TXT",error="Cannot find file:\n\"FILE.TXT\""} 1.458255915e9
+
+    # Minimalistic line:
+    metric_without_timestamp_and_labels 12.47
+
+    # A weird metric from before the epoch:
+    something_weird{problem="division by zero"} +Inf -3982045
+
+    # A histogram, which has a pretty complex representation in the text format:
+    # HELP http_request_duration_seconds A histogram of the request duration.
+    # TYPE http_request_duration_seconds histogram
+    http_request_duration_seconds_bucket{le="0.05"} 24054
+    http_request_duration_seconds_bucket{le="0.1"} 33444
+    http_request_duration_seconds_bucket{le="0.2"} 100392
+    http_request_duration_seconds_bucket{le="0.5"} 129389
+    http_request_duration_seconds_bucket{le="1"} 133988
+    http_request_duration_seconds_bucket{le="+Inf"} 144320
+    http_request_duration_seconds_sum 53423
+    http_request_duration_seconds_count 144320
+
+    # Finally a summary, which has a complex representation, too:
+    # HELP rpc_duration_seconds A summary of the RPC duration in seconds.
+    # TYPE rpc_duration_seconds summary
+    rpc_duration_seconds{quantile="0.01"} 3102
+    rpc_duration_seconds{quantile="0.05"} 3272
+    rpc_duration_seconds{quantile="0.5"} 4773
+    rpc_duration_seconds{quantile="0.9"} 9001
+    rpc_duration_seconds{quantile="0.99"} 76656
+    rpc_duration_seconds_sum 1.7560473e+07
+    rpc_duration_seconds_count 2693
+
+  Attributes:
+    stream: File-like object. Output stream to print samples.
+  """
+
+  def __init__(self, path, mode='w'):
+      self._path = path
+      self.mode = mode
+      self.registry = CollectorRegistry()
+
+  def __repr__(self):
+      return '<{0} file={1} mode={2}>'.format(type(self).__name__, self._path, self.mode)
+
+
+  def PublishSamples(self, samples):
+
+      samples = list(samples)
+
+      # Metrics
+      metric_summaries = dict()  # metric key to Summary
+      metric_keys = set(toSnakeCase(sample['metric']) for sample in samples)  # all metric keys in snake case
+      for metric_key in metric_keys:
+          metric_summaries[metric_key] = Summary(name=toSnakeCase(metric_key),
+                                                 documentation=metric_key + ' values',
+                                                 labelnames=['test', 'unit'],
+                                                 registry=self.registry)
+
+      # Going through samples
+      for sample in samples:
+
+          # Metric value
+          metric_summaries[toSnakeCase(sample['metric'])] \
+              .labels(test=sample['test'], unit=sample['unit']) \
+              .observe(sample['value'])
+
+          # Writing the OpenMetrics results in a file
+          logging.info('Writing OpenMetrics results to %s', self._path)
+          from prometheus_client.exposition import write_to_textfile
+          write_to_textfile(self._path, self.registry)
+
+          # TODO Expose metric
 
 
 class LogPublisher(SamplePublisher):
@@ -912,6 +1014,9 @@ class SampleCollector(object):
                                               gsutil_path=FLAGS.gsutil_path))
     if FLAGS.csv_path:
       publishers.append(CSVPublisher(FLAGS.csv_path, FLAGS.csv_write_mode))
+
+    if FLAGS.om_path:
+      publishers.append(OpenMetricsPublisher(FLAGS.om_path, FLAGS.om_write_mode))
 
     if FLAGS.es_uri:
       publishers.append(ElasticsearchPublisher(es_uri=FLAGS.es_uri,
