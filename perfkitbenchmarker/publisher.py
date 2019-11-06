@@ -42,7 +42,7 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import log_util
 from perfkitbenchmarker import version
 from perfkitbenchmarker import vm_util
-from prometheus_client import Info, CollectorRegistry, Summary
+from prometheus_client import Info, CollectorRegistry, Summary, push_to_gateway
 import six
 from six.moves import urllib
 import six.moves.http_client as httplib
@@ -99,6 +99,10 @@ flags.DEFINE_enum(
     'w',
     ['w', 'a'],
     'Open mode for file specified by --om_path. Default: overwrite file')
+flags.DEFINE_string(
+    'pushgateway',
+    None,
+    'Prometheus Pushgateway address')
 
 flags.DEFINE_string(
     'bigquery_table',
@@ -531,12 +535,14 @@ class OpenMetricsPublisher(SamplePublisher):
               .labels(test=sample['test'], unit=sample['unit']) \
               .observe(sample['value'])
 
-          # Writing the OpenMetrics results in a file
-          logging.info('Writing OpenMetrics results to %s', self._path)
-          from prometheus_client.exposition import write_to_textfile
-          write_to_textfile(self._path, self.registry)
+      # Writing the OpenMetrics results in a file
+      logging.info('Writing OpenMetrics results to %s', self._path)
+      from prometheus_client.exposition import write_to_textfile
+      write_to_textfile(self._path, self.registry)
 
-          # TODO Expose metric
+      # Exposing metrics to a Pushgateway
+      if FLAGS.pushgateway is not None:
+        push_to_gateway(gateway=FLAGS.pushgateway, job='job_label', registry=self.registry)  # FIXME job label should be run_uri
 
 
 class LogPublisher(SamplePublisher):
