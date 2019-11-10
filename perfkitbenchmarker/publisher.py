@@ -542,7 +542,7 @@ class OpenMetricsPublisher(SamplePublisher):
 
       # Exposing metrics to a Pushgateway
       if FLAGS.pushgateway is not None:
-        push_to_gateway(gateway=FLAGS.pushgateway, job='job_label', registry=self.registry)  # FIXME job label should be run_uri
+        push_to_gateway(gateway=FLAGS.pushgateway, job='distributed-k8s', registry=self.registry)  # FIXME job label should be run_uri
 
 
 class LogPublisher(SamplePublisher):
