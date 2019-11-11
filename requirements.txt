@@ -25,3 +25,4 @@ contextlib2>=0.5.1
 pywinrm
 timeout-decorator
 google-cloud-monitoring
+prometheus_client
