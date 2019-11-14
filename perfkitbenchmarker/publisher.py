@@ -445,115 +445,137 @@ class PrettyPrintStreamPublisher(SamplePublisher):
     self.stream.write(value)
 
 
-def toSnakeCase(str):
-    return str.replace(" ", "_")
-
-
 class PushgatewayPublisher(SamplePublisher):
   """Exposes metrics to a Pushgatway."""
 
   def __init__(self, pushgateway):
-      self.pushgateway = FLAGS.pushgateway
-      self.documentations = {
-        ('block_storage_workload', toSnakeCase('sequential_write:write:bandwidth')): '',
-        ('block_storage_workload', toSnakeCase('sequential_write:write:latency')): '',
-        ('block_storage_workload', toSnakeCase('sequential_write:write:latency:min')): '',
-        ('block_storage_workload', toSnakeCase('sequential_write:write:latency:max')): '',
-        ('block_storage_workload', toSnakeCase('sequential_write:write:latency:mean')): '',
-        ('block_storage_workload', toSnakeCase('sequential_write:write:latency:stddev')): '',
-        ('block_storage_workload', toSnakeCase('sequential_write:write:iops')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:bandwidth')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:latency')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:latency:min')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:latency:max')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:latency:mean')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:latency:stddev')): '',
-        ('block_storage_workload', toSnakeCase('random_read:read:iops')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:bandwidth')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:latency')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:latency:min')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:latency:max')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:latency:mean')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:latency:stddev')): '',
-        ('block_storage_workload', toSnakeCase('sequential_read:read:iops')): '',
-        ('block_storage_workload', toSnakeCase('lscpu')): 'Information about the CPU architecture',
-        ('block_storage_workload', toSnakeCase('End to End Runtime')): '',
-        ('cluster_boot', toSnakeCase('Boot Time')): 'Time difference from before the VM is created to when the VM is responsive to SSH commands',
-        ('cluster_boot', toSnakeCase('Cluster Boot Time')): 'Time to reboot the cluster of VMs',
-        ('cluster_boot', toSnakeCase('lscpu')): 'Information about the CPU architecture',
-        ('cluster_boot', toSnakeCase('End to End Runtime')): '',
-        ('fio', toSnakeCase('sequential_write:write:bandwidth')): '',
-        ('fio', toSnakeCase('sequential_write:write:latency')): '',
-        ('fio', toSnakeCase('sequential_write:write:latency:min')): '',
-        ('fio', toSnakeCase('sequential_write:write:latency:max')): '',
-        ('fio', toSnakeCase('sequential_write:write:latency:mean')): '',
-        ('fio', toSnakeCase('sequential_write:write:latency:stddev')): '',
-        ('fio', toSnakeCase('sequential_write:write:iops')): '',
-        ('fio', toSnakeCase('sequential_read:read:bandwidth')): '',
-        ('fio', toSnakeCase('sequential_read:read:latency')): '',
-        ('fio', toSnakeCase('sequential_read:read:latency:min')): '',
-        ('fio', toSnakeCase('sequential_read:read:latency:max')): '',
-        ('fio', toSnakeCase('sequential_read:read:latency:mean')): '',
-        ('fio', toSnakeCase('sequential_read:read:latency:stddev')): '',
-        ('fio', toSnakeCase('sequential_read:read:iops')): '',
-        ('fio', toSnakeCase('random_write_test:write:bandwidth')): '',
-        ('fio', toSnakeCase('random_write_test:write:latency')): '',
-        ('fio', toSnakeCase('random_write_test:write:latency:min')): '',
-        ('fio', toSnakeCase('random_write_test:write:latency:max')): '',
-        ('fio', toSnakeCase('random_write_test:write:latency:mean')): '',
-        ('fio', toSnakeCase('random_write_test:write:latency:stddev')): '',
-        ('fio', toSnakeCase('random_write_test:write:iops')): '',
-        ('fio', toSnakeCase('random_read_test:read:bandwidth')): '',
-        ('fio', toSnakeCase('random_read_test:read:latency')): '',
-        ('fio', toSnakeCase('random_read_test:read:latency:min')): '',
-        ('fio', toSnakeCase('random_read_test:read:latency:max')): '',
-        ('fio', toSnakeCase('random_read_test:read:latency:mean')): '',
-        ('fio', toSnakeCase('random_read_test:read:latency:stddev')): '',
-        ('fio', toSnakeCase('random_read_test:read:iops')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:bandwidth')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:latency')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:latency:min')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:latency:max')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:latency:mean')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:latency:stddev')): '',
-        ('fio', toSnakeCase('random_read_test_parallel:read:iops')): '',
-        ('fio', toSnakeCase('start_time')): '',
-        ('fio', toSnakeCase('end_time')): '',
-        ('fio', toSnakeCase('lscpu')): 'Information about the CPU architecture',
-        ('fio', toSnakeCase('End to End Runtime')): '',
-        ('mesh_network', toSnakeCase('TCP_RR_Average_Latency')): '',
-        ('mesh_network', toSnakeCase('TCP_STREAM_Total_Throughput')): '',
-        ('mesh_network', toSnakeCase('lscpu')): 'Information about the CPU architecture',
-        ('mesh_network', toSnakeCase('End to End Runtime')): '',
+    self.pushgateway = pushgateway
+    self.registry = CollectorRegistry()
+    # TODO Expand
+    self.documentations = {
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:bandwidth')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:latency')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:latency:min')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:latency:max')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:latency:mean')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:latency:stddev')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_write:write:iops')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:bandwidth')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:latency')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:latency:min')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:latency:max')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:latency:mean')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:latency:stddev')): '',
+      ('block_storage_workload', self.toSnakeCase('random_read:read:iops')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:bandwidth')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:latency')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:latency:min')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:latency:max')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:latency:mean')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:latency:stddev')): '',
+      ('block_storage_workload', self.toSnakeCase('sequential_read:read:iops')): '',
+      ('block_storage_workload', self.toSnakeCase('lscpu')): 'Information about the CPU architecture',
+      ('block_storage_workload', self.toSnakeCase('End to End Runtime')): '',
+      ('cluster_boot', self.toSnakeCase('Boot Time')): 'Time difference from before the VM is created to when the VM is responsive to SSH commands',
+      ('cluster_boot', self.toSnakeCase('Cluster Boot Time')): 'Time to reboot the cluster of VMs',
+      ('cluster_boot', self.toSnakeCase('lscpu')): 'Information about the CPU architecture',
+      ('cluster_boot', self.toSnakeCase('End to End Runtime')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:bandwidth')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:latency')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:latency:min')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:latency:max')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:latency:mean')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:latency:stddev')): '',
+      ('fio', self.toSnakeCase('sequential_write:write:iops')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:bandwidth')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:latency')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:latency:min')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:latency:max')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:latency:mean')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:latency:stddev')): '',
+      ('fio', self.toSnakeCase('sequential_read:read:iops')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:bandwidth')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:latency')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:latency:min')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:latency:max')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:latency:mean')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:latency:stddev')): '',
+      ('fio', self.toSnakeCase('random_write_test:write:iops')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:bandwidth')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:latency')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:latency:min')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:latency:max')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:latency:mean')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:latency:stddev')): '',
+      ('fio', self.toSnakeCase('random_read_test:read:iops')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:bandwidth')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:latency')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:latency:min')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:latency:max')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:latency:mean')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:latency:stddev')): '',
+      ('fio', self.toSnakeCase('random_read_test_parallel:read:iops')): '',
+      ('fio', self.toSnakeCase('start_time')): '',
+      ('fio', self.toSnakeCase('end_time')): '',
+      ('fio', self.toSnakeCase('lscpu')): 'Information about the CPU architecture',
+      ('fio', self.toSnakeCase('End to End Runtime')): '',
+      ('mesh_network', self.toSnakeCase('TCP_RR_Average_Latency')): '',
+      ('mesh_network', self.toSnakeCase('TCP_STREAM_Total_Throughput')): '',
+      ('mesh_network', self.toSnakeCase('lscpu')): 'Information about the CPU architecture',
+      ('mesh_network', self.toSnakeCase('End to End Runtime')): '',
     }
+    # Labels to be added for each entry
+    self.labels = ['unit', 'run_uri']
+    # PerfkitBenchmarker puts these fields in the 'metadata' sub-dictionary.
+    # However, they do not only represent metadata.
+    self.metadata_labels = ['data_disk_0_size', 'fio_job', 'num_cpus', 'rw', 'vm_count', 'CPU MHz', 'CPU max MHz',
+                            'CPU min MHz', 'CPU(s)', 'Thread(s) per core', 'bw_agg', 'bw_max', 'bw_min']
 
   def __repr__(self):
-      return '<{0} pushgateway={1}>'.format(type(self).__name__, self.pushgateway)
+    return '<{0} pushgateway={1}>'.format(type(self).__name__, self.pushgateway)
 
+  def toSnakeCase(self, input_string):
+    return input_string.replace(" ", "_").replace("(", "").replace(")", "")
 
   def PublishSamples(self, samples):
 
-      samples = list(samples)
+    samples = list(samples)
 
-      # Exposing metrics to a Pushgateway
-      if self.pushgateway is not None:
+    # Exposing metrics to a Pushgateway
+    if self.pushgateway is not None:
 
-        logging.info('Exposing metrics to %s', self.pushgateway)
+      logging.info('Exposing metrics to %s', self.pushgateway)
 
-        # Going through samples
-        for sample in samples:
-          registry = CollectorRegistry()
-          Gauge(name=toSnakeCase(sample['metric']),
-                # namespace='distributed_k8s',  # prepended to every entry
-                documentation=self.documentations.get((sample['test'], toSnakeCase(sample['metric'])),
-                                                      'This metric\'s description is still not available'),
-                labelnames=['unit'],
-                registry=registry) \
-            .labels(unit=sample['unit']) \
-            .set(sample['value'])
+      # Cycling across samples
+      for sample in samples:
 
-          # Exporting to a Pushgateway
-          push_to_gateway(gateway=self.pushgateway, job=sample['test'], registry=registry)
+        # Labels and their values to use for this entry
+        labels_to_use = [label for label in self.labels if label in sample]
+        metadata_labels_to_use = [metadata_label for metadata_label in self.metadata_labels if
+                                  metadata_label in sample['metadata']]
+        label_values = [sample[label_to_use] or '' for label_to_use in labels_to_use]
+        metadata_label_values = [sample['metadata'][metadata_label_to_use] or '' for metadata_label_to_use in
+                                 metadata_labels_to_use]
+        # print('Labels to use: %s' % ', '.join(map(str, labels_to_use)))
+        # print('Labels values: %s' % ', '.join(map(str, label_values)))
+        # print('Metadata label to use: %s' % ', '.join(map(str, metadata_labels_to_use)))
+        # print('Metadata label values: %s' % ', '.join(map(str, metadata_label_values)))
+
+        # Pushgateway requires snake case strings
+        snake_case_labels_to_use = [self.toSnakeCase(label_to_use) for label_to_use in labels_to_use]
+        snake_case_metadata_labels_to_use = [self.toSnakeCase(metadata_label_to_use) for metadata_label_to_use in
+                                             metadata_labels_to_use]
+
+        # Creating the metric
+        g = Gauge(name=self.toSnakeCase(sample['metric']),
+                  documentation=self.documentations.get((sample['test'], self.toSnakeCase(sample['metric'])),
+                                                        'This metric\'s description is still not available'),
+                  labelnames=(snake_case_labels_to_use + snake_case_metadata_labels_to_use),
+                  registry=self.registry).labels(*(label_values + metadata_label_values))
+        g.set(sample['value'])
+
+        # Exporting to a Pushgateway
+        push_to_gateway(gateway=self.pushgateway, job=sample['test'], registry=self.registry)
 
 
 class LogPublisher(SamplePublisher):
