@@ -534,8 +534,16 @@ class PushgatewayPublisher(SamplePublisher):
   def __repr__(self):
     return '<{0} pushgateway={1}>'.format(type(self).__name__, self.pushgateway)
 
-  def toSnakeCase(self, input_string):
-    return input_string.replace(" ", "_").replace("(", "").replace(")", "")
+  def toSnakeCase(self, input_string, unit=None):
+
+    # Removing spaces and parentheses. Making it lowercase.
+    result = input_string.replace(" ", "_").replace("(", "").replace(")", "").lower()
+
+    # Adding measurement unit at the end
+    if unit is not None:
+      result += "_" + self.toSnakeCase(input_string=unit, unit=None)
+
+    return result
 
   def PublishSamples(self, samples):
 
@@ -567,7 +575,7 @@ class PushgatewayPublisher(SamplePublisher):
                                              metadata_labels_to_use]
 
         # Creating the metric
-        g = Gauge(name=self.toSnakeCase(sample['metric']),
+        g = Gauge(name=self.toSnakeCase(input_string=sample['metric'], unit=sample['unit']),
                   documentation=self.documentations.get((sample['test'], self.toSnakeCase(sample['metric'])),
                                                         'This metric\'s description is still not available'),
                   labelnames=(snake_case_labels_to_use + snake_case_metadata_labels_to_use),
