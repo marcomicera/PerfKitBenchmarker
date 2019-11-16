@@ -451,6 +451,7 @@ class PushgatewayPublisher(SamplePublisher):
   def __init__(self, pushgateway):
     self.pushgateway = pushgateway
     self.registry = CollectorRegistry()
+    self.gauges = {}
     # TODO Expand
     self.documentations = {
       ('block_storage_workload', self.toSnakeCase('sequential_write:write:bandwidth')): '',
@@ -575,11 +576,16 @@ class PushgatewayPublisher(SamplePublisher):
                                              metadata_labels_to_use]
 
         # Creating the metric
-        g = Gauge(name=self.toSnakeCase(input_string=sample['metric'], unit=sample['unit']),
-                  documentation=self.documentations.get((sample['test'], self.toSnakeCase(sample['metric'])),
-                                                        'This metric\'s description is still not available'),
-                  labelnames=(snake_case_labels_to_use + snake_case_metadata_labels_to_use),
-                  registry=self.registry).labels(*(label_values + metadata_label_values))
+        metric_name = self.toSnakeCase(input_string=sample['metric'], unit=sample['unit'])
+        if metric_name in self.gauges:
+          g = self.gauges[metric_name]
+        else:
+          g = Gauge(name=metric_name,
+                    documentation=self.documentations.get((sample['test'], self.toSnakeCase(sample['metric'])),
+                                                          'This metric\'s description is still not available'),
+                    labelnames=(snake_case_labels_to_use + snake_case_metadata_labels_to_use),
+                    registry=self.registry).labels(*(label_values + metadata_label_values))
+          self.gauges[metric_name] = g
         g.set(sample['value'])
 
         # Exporting to a Pushgateway
