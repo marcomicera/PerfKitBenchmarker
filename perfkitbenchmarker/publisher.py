@@ -541,7 +541,7 @@ class PushgatewayPublisher(SamplePublisher):
     result = input_string.replace(" ", "_").replace("(", "").replace(")", "").lower()
 
     # Adding measurement unit at the end
-    if unit is not None:
+    if unit is not None and unit != '':
       result += "_" + self.toSnakeCase(input_string=unit, unit=None)
 
     return result
