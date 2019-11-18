@@ -559,9 +559,11 @@ class PushgatewayPublisher(SamplePublisher):
       for sample in samples:
 
         # Labels and their values to use for this entry
-        labels_to_use = [label for label in self.labels if label in sample]
+        labels_to_use = [label for label in self.labels if
+                         (label in sample and sample[label] is not None and sample[label] != '')]
         metadata_labels_to_use = [metadata_label for metadata_label in self.metadata_labels if
-                                  metadata_label in sample['metadata']]
+                                  (metadata_label in sample['metadata'] and sample['metadata'][
+                                    metadata_label] is not None and sample['metadata'][metadata_label] != '')]
         label_values = [sample[label_to_use] or '' for label_to_use in labels_to_use]
         metadata_label_values = [sample['metadata'][metadata_label_to_use] or '' for metadata_label_to_use in
                                  metadata_labels_to_use]
