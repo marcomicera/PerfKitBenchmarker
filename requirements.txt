@@ -26,3 +26,4 @@ pywinrm
 timeout-decorator
 google-cloud-monitoring
 prometheus_client
+six==1.12.0
