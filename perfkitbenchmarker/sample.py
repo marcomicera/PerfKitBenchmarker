@@ -17,7 +17,7 @@ import collections
 import time
 PERCENTILES_LIST = [0.1, 1, 5, 10, 50, 90, 95, 99, 99.9]
 
-_SAMPLE_FIELDS = 'metric', 'value', 'unit', 'metadata', 'timestamp'
+_SAMPLE_FIELDS = 'metric', 'value', 'unit', 'metadata', 'timestamp', 'instance'
 
 
 def PercentileCalculator(numbers, percentiles=PERCENTILES_LIST):
@@ -76,7 +76,7 @@ class Sample(collections.namedtuple('Sample', _SAMPLE_FIELDS)):
     timestamp: float. Unix timestamp.
   """
 
-  def __new__(cls, metric, value, unit, metadata=None, timestamp=None,
+  def __new__(cls, metric, value, unit, metadata=None, timestamp=None, instance=None,
               **kwargs):
     if timestamp is None:
       timestamp = time.time()
@@ -84,6 +84,7 @@ class Sample(collections.namedtuple('Sample', _SAMPLE_FIELDS)):
     return super(Sample, cls).__new__(cls, metric, value, unit,
                                       metadata=metadata or {},
                                       timestamp=timestamp,
+                                      instance=instance,
                                       **kwargs)
 
   def asdict(self):

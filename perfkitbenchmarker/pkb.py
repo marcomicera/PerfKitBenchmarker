@@ -1200,8 +1200,9 @@ def _CreateLscpuSamples(vms):
   for vm in vms:
     if vm.OS_TYPE in os_types.LINUX_OS_TYPES:
       metadata = {'node_name': vm.name}
+      instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
       metadata.update(vm.CheckLsCpu().data)
-      samples.append(sample.Sample('lscpu', 0, '', metadata))
+      samples.append(sample.Sample('lscpu', 0, '', metadata, instance=instance))
   return samples
 
 

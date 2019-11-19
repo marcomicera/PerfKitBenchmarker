@@ -295,7 +295,7 @@ class CSVPublisher(SamplePublisher):
 
   _DEFAULT_FIELDS = ('timestamp', 'test', 'metric', 'value', 'unit',
                      'product_name', 'official', 'owner', 'run_uri',
-                     'sample_uri')
+                     'sample_uri', 'instance')
 
   def __init__(self, path, mode='w'):
     self._path = path
@@ -526,7 +526,7 @@ class PushgatewayPublisher(SamplePublisher):
       ('mesh_network', self.toSnakeCase('End to End Runtime')): '',
     }
     # Labels to be added for each entry
-    self.labels = ['unit', 'run_uri']
+    self.labels = ['unit', 'run_uri', 'instance']
     # PerfkitBenchmarker puts these fields in the 'metadata' sub-dictionary.
     # However, they do not only represent metadata.
     self.metadata_labels = ['data_disk_0_size', 'fio_job', 'num_cpus', 'rw', 'vm_count', 'CPU MHz', 'CPU max MHz',
@@ -567,10 +567,6 @@ class PushgatewayPublisher(SamplePublisher):
         label_values = [sample[label_to_use] or '' for label_to_use in labels_to_use]
         metadata_label_values = [sample['metadata'][metadata_label_to_use] or '' for metadata_label_to_use in
                                  metadata_labels_to_use]
-        # print('Labels to use: %s' % ', '.join(map(str, labels_to_use)))
-        # print('Labels values: %s' % ', '.join(map(str, label_values)))
-        # print('Metadata label to use: %s' % ', '.join(map(str, metadata_labels_to_use)))
-        # print('Metadata label values: %s' % ', '.join(map(str, metadata_label_values)))
 
         # Pushgateway requires snake case strings
         snake_case_labels_to_use = [self.toSnakeCase(label_to_use) for label_to_use in labels_to_use]
@@ -582,6 +578,10 @@ class PushgatewayPublisher(SamplePublisher):
         if metric_name in self.gauges:
           g = self.gauges[metric_name]
         else:
+          print('Labels to use: %s' % ', '.join(map(str, snake_case_labels_to_use)))
+          print('Labels values: %s' % ', '.join(map(str, label_values)))
+          print('Metadata label to use: %s' % ', '.join(map(str, snake_case_metadata_labels_to_use)))
+          print('Metadata label values: %s' % ', '.join(map(str, metadata_label_values)))
           g = Gauge(name=metric_name,
                     documentation=self.documentations.get((sample['test'], self.toSnakeCase(sample['metric'])),
                                                           'This metric\'s description is still not available'),

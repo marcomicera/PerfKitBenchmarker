@@ -271,6 +271,8 @@ class KubernetesVirtualMachine(virtual_machine.BaseVirtualMachine):
       image = registry.GetFullRegistryTag(self.image)
     else:
       image = self.image
+    # Use Pod fields as values for environment variables
+    # https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/#use-pod-fields-as-values-for-environment-variables
     container = {
         'image': image,
         'name': self.name,
@@ -278,6 +280,16 @@ class KubernetesVirtualMachine(virtual_machine.BaseVirtualMachine):
         'securityContext': {
             'privileged': FLAGS.docker_in_privileged_mode
         },
+        'env': [
+          {
+            'name': 'KUBE_NODE',
+            'valueFrom': {
+              'fieldRef': {
+                'fieldPath': 'spec.nodeName'
+              }
+            }
+          }
+        ],
         'volumeMounts': [
         ]
     }
@@ -526,6 +538,7 @@ def _install_sudo_command():
   # preserved when running as sudo. Then run tail indefinitely so that
   # the container does not exit.
   container_command = ' && '.join([
+      'echo $KUBE_NODE > /etc/kubenode',
       'apt-get update',
       'apt-get install -y sudo',
       'sed -i \'/env_reset/d\' /etc/sudoers',

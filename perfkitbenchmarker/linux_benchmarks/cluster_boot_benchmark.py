@@ -101,10 +101,11 @@ def GetTimeToBoot(vms):
         'os_type': vm.OS_TYPE,
         'create_delay_sec': '%0.1f' % create_delay_sec
     }
+    instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
     boot_time_sec = vm.bootable_time - min_create_start_time
     max_boot_time_sec = max(max_boot_time_sec, boot_time_sec)
     samples.append(
-        sample.Sample('Boot Time', boot_time_sec, 'seconds', metadata))
+        sample.Sample('Boot Time', boot_time_sec, 'seconds', metadata, instance=instance))
     if FLAGS.cluster_boot_test_port_listening:
       assert vm.port_listening_time
       assert vm.port_listening_time >= vm.create_start_time
@@ -113,7 +114,7 @@ def GetTimeToBoot(vms):
                                         port_listening_time_sec)
       samples.append(
           sample.Sample('Port Listening Time', port_listening_time_sec,
-                        'seconds', metadata))
+                        'seconds', metadata, instance=instance))
     # TODO(user): refactor so Windows specifics aren't in linux_benchmarks
     if FLAGS.cluster_boot_test_rdp_port_listening:
       assert vm.rdp_port_listening_time
@@ -124,7 +125,7 @@ def GetTimeToBoot(vms):
                                             rdp_port_listening_time_sec)
       samples.append(
           sample.Sample('RDP Port Listening Time', rdp_port_listening_time_sec,
-                        'seconds', metadata))
+                        'seconds', metadata, instance=instance))
 
   # Add a total cluster boot sample as the maximum boot time.
   metadata = {
@@ -172,13 +173,14 @@ def _MeasureReboot(vms):
         'num_vms': len(vms),
         'os_type': vm.OS_TYPE
     }
+    instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
     os_types.add(vm.OS_TYPE)
     samples.append(
         sample.Sample('Reboot Time', reboot_times[i], 'seconds', metadata))
   metadata = {'num_vms': len(vms), 'os_type': ','.join(sorted(os_types))}
   samples.append(
       sample.Sample('Cluster Reboot Time', cluster_reboot_time, 'seconds',
-                    metadata))
+                    metadata, instance=instance))
   return samples
 
 
