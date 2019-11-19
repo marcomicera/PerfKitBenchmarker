@@ -11,3 +11,4 @@ venv
 *.iml
 /.idea
 /*git_ignore*
+PerfkitBenchmarker.srctrl*
