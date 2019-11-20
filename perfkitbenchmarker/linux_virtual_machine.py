@@ -551,6 +551,8 @@ class BaseLinuxMixin(virtual_machine.BaseOsMixin):
     self.numa_node_count = lscpu_results.numa_node_count
     self.os_metadata['os_info'] = self.os_info
     self.os_metadata['kernel_release'] = self.kernel_release
+    kube_node, _, _ = self.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+    self.os_metadata['kube_node'] = kube_node.strip().strip('\n')
     self.os_metadata.update(self.partition_table)
     if FLAGS.append_kernel_command_line:
       self.os_metadata['kernel_command_line'] = self.kernel_command_line

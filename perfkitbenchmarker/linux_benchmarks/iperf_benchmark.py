@@ -150,7 +150,10 @@ def _RunIperf(sending_vm, receiving_vm, receiving_ip_address, ip_type):
       'runtime_in_seconds': FLAGS.iperf_runtime_in_seconds,
       'ip_type': ip_type
   }
-  return sample.Sample('Throughput', total_throughput, 'Mbits/sec', metadata)
+  sending_vm_kube_node, _, _ = sending_vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  receiving_vm_kube_node, _, _ = receiving_vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  instance = sending_vm_kube_node.strip().strip('\n') + "-" + receiving_vm_kube_node.strip().strip('\n')
+  return sample.Sample('Throughput', total_throughput, 'Mbits/sec', metadata, instance=instance)
 
 
 def Run(benchmark_spec):
