@@ -1214,13 +1214,14 @@ def _CreateProcCpuSamples(vms):
       continue
     data = vm.CheckProcCpu()
     metadata = {'node_name': vm.name}
+    instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
     metadata.update(data.GetValues())
-    samples.append(sample.Sample('proccpu', 0, '', metadata))
+    samples.append(sample.Sample('proccpu', 0, '', metadata, instance=instance))
     metadata = {'node_name': vm.name}
     for processor_id, raw_values in data.mappings.items():
       values = ['%s=%s' % item for item in raw_values.items()]
       metadata['proc_{}'.format(processor_id)] = ';'.join(sorted(values))
-    samples.append(sample.Sample('proccpu_mapping', 0, '', metadata))
+    samples.append(sample.Sample('proccpu_mapping', 0, '', metadata, instance=instance))
   return samples
 
 
