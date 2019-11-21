@@ -59,6 +59,7 @@ mesh_network:
 
 NETPERF_BENCHMARKSS = ['TCP_RR', 'TCP_STREAM']
 VALUE_INDEX = 1
+INSTANCE_INDEX = 5
 RESULT_LOCK = threading.Lock()
 
 
@@ -109,6 +110,7 @@ def RunNetperf(vm, benchmark_name, servers, result):
     cmd_duration_suffix = '-l %s' % FLAGS.duration_in_seconds
   else:
     cmd_duration_suffix = ''
+  result[INSTANCE_INDEX], _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
   for server in servers:
     if vm != server:
       cmd += ('./netperf -t '
@@ -161,6 +163,8 @@ def Run(benchmark_spec):
         'number_machines': num_vms,
         'number_connections': FLAGS.num_connections
     }
+    timestamp = None
+    instance = ''
 
     if netperf_benchmark == 'TCP_STREAM':
       metric = 'TCP_STREAM_Total_Throughput'
@@ -170,7 +174,7 @@ def Run(benchmark_spec):
       metric = 'TCP_RR_Average_Latency'
       unit = 'ms'
       value = 0.0
-    result = [metric, value, unit, metadata]
+    result = [metric, value, unit, metadata, timestamp, instance]
     args = [((source, netperf_benchmark, vms, result), {}) for source in vms]
     vm_util.RunThreaded(RunNetperf, args, num_vms)
     result = sample.Sample(*result)
