@@ -485,7 +485,7 @@ class PushgatewayPublisher(SamplePublisher):
   def toSnakeCase(self, input_string, unit=None):
 
     # Removing spaces and parentheses. Making it lowercase.
-    result = input_string.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_").lower()
+    result = input_string.replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_").replace(";", "_").replace(":", "_").replace(".", "_").lower()
 
     # Adding measurement unit at the end
     if unit is not None and unit != '':
