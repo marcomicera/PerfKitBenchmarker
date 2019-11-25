@@ -151,7 +151,7 @@ def FioParametersToJob(fio_parameters):
 
 def ParseResults(job_file, fio_json_result, base_metadata=None,
                  log_file_base='', bin_vals=None,
-                 skip_latency_individual_stats=False):
+                 skip_latency_individual_stats=False, instance=None):
   """Parse fio json output into samples.
 
   Args:
@@ -164,6 +164,7 @@ def ParseResults(job_file, fio_json_result, base_metadata=None,
       fio/tools/hist/fiologparser_hist.py
     skip_latency_individual_stats: Bool. If true, skips pulling latency stats
       that are not aggregate.
+    instance: on which machines the test has been executed
 
   Returns:
     A list of sample.Sample objects.
@@ -198,7 +199,7 @@ def ParseResults(job_file, fio_json_result, base_metadata=None,
         samples.append(
             sample.Sample('%s:bandwidth' % metric_name,
                           job[mode]['bw'],
-                          'KB/s', bw_metadata))
+                          'KB/s', bw_metadata, instance=instance))
 
         # There is one sample whose metric is '<metric_name>:latency'
         # with all of the latency statistics in its metadata, and then
@@ -246,16 +247,16 @@ def ParseResults(job_file, fio_json_result, base_metadata=None,
         samples.append(
             sample.Sample('%s:latency' % metric_name,
                           _ConvertClat(job[mode][clat_key]['mean']),
-                          'usec', lat_metadata, timestamp))
+                          'usec', lat_metadata, timestamp, instance=instance))
 
         for stat_name, stat_val in lat_statistics:
           samples.append(
               sample.Sample('%s:latency:%s' % (metric_name, stat_name),
-                            stat_val, 'usec', parameters, timestamp))
+                            stat_val, 'usec', parameters, timestamp, instance=instance))
 
         samples.append(
             sample.Sample('%s:iops' % metric_name,
-                          job[mode]['iops'], '', parameters, timestamp))
+                          job[mode]['iops'], '', parameters, timestamp, instance=instance))
     if log_file_base and bin_vals:
       # Parse histograms
       aggregates = collections.defaultdict(collections.Counter)
@@ -267,7 +268,7 @@ def ParseResults(job_file, fio_json_result, base_metadata=None,
 
         for key in hists:
           aggregates[key].update(hists[key])
-      samples += _BuildHistogramSamples(aggregates, job_name, parameters)
+      samples += _BuildHistogramSamples(aggregates, job_name, parameters, instance=instance)
 
   return samples
 
@@ -341,12 +342,13 @@ def _ParseHistogram(hist_log_file, mean_bin_vals):
 
 
 def _BuildHistogramSamples(aggregates, metric_prefix='',
-                           additional_metadata=None):
+                           additional_metadata=None, instance=None):
   """Builds a sample for a histogram aggregated from several files.
 
     Args:
       metric_prefix: String. Prefix of the metric name to use.
       additional_metadata: dict. Additional metadata attaching to Sample.
+      instance: on which machines the test has been executed
 
     Returns:
       samples.Sample object that reports the fio histogram.
@@ -359,5 +361,5 @@ def _BuildHistogramSamples(aggregates, metric_prefix='',
     samples.append(
         sample.Sample(
             ':'.join([metric_prefix, str(bs), rw, 'histogram']),
-            0, 'us', metadata))
+            0, 'us', metadata, instance=instance))
   return samples

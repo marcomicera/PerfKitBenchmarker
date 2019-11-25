@@ -611,6 +611,7 @@ def RunWithExec(vm, exec_path, remote_job_file_path, job_file_contents):
   start_time = time.time()
   stdout, _ = vm.RobustRemoteCommand(
       fio_command, should_log=True, timeout=FLAGS.fio_command_timeout_sec)
+  instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
   end_time = time.time()
   bin_vals = []
   if collect_logs:
@@ -622,12 +623,12 @@ def RunWithExec(vm, exec_path, remote_job_file_path, job_file_contents):
           vm, '%s_clat_hist.%s.log' % (
               log_file_base, idx + 1)) for idx in range(num_logs)]
   samples = fio.ParseResults(job_file_string, json.loads(stdout),
-                             log_file_base=log_file_base, bin_vals=bin_vals)
+                             log_file_base=log_file_base, bin_vals=bin_vals, instance=instance)
 
   samples.append(
-      sample.Sample('start_time', start_time, 'sec', samples[0].metadata))
+      sample.Sample('start_time', start_time, 'sec', samples[0].metadata, instance=instance))
   samples.append(
-      sample.Sample('end_time', end_time, 'sec', samples[0].metadata))
+      sample.Sample('end_time', end_time, 'sec', samples[0].metadata, instance=instance))
 
   return samples
 
