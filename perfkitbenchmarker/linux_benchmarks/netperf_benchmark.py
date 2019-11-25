@@ -239,7 +239,7 @@ def _HistogramStatsCalculator(histogram, percentiles=PERCENTILES):
 
 
 def ParseNetperfOutput(stdout, metadata, benchmark_name,
-                       enable_latency_histograms):
+                       enable_latency_histograms, instance=None):
   """Parses the stdout of a single netperf process.
 
   Args:
@@ -248,6 +248,7 @@ def ParseNetperfOutput(stdout, metadata, benchmark_name,
     benchmark_name: the name of the netperf benchmark
     enable_latency_histograms: bool indicating if latency histograms are
         included in stdout
+    instance: on which machines the test has been executed
 
   Returns:
     A tuple containing (throughput_sample, latency_samples, latency_histogram)
@@ -312,7 +313,7 @@ def ParseNetperfOutput(stdout, metadata, benchmark_name,
   else:
     raise ValueError('Netperf output specifies unrecognized throughput units %s'
                      % throughput_units)
-  throughput_sample = sample.Sample(metric, throughput, unit, metadata)
+  throughput_sample = sample.Sample(metric, throughput, unit, metadata, instance=instance)
 
   latency_hist = None
   latency_samples = []
@@ -324,7 +325,7 @@ def ParseNetperfOutput(stdout, metadata, benchmark_name,
     hist_metadata = {'histogram': json.dumps(latency_hist)}
     hist_metadata.update(metadata)
     latency_samples.append(sample.Sample(
-        '%s_Latency_Histogram' % benchmark_name, 0, 'us', hist_metadata))
+        '%s_Latency_Histogram' % benchmark_name, 0, 'us', hist_metadata, instance=instance))
   if unit != MBPS:
     for metric_key, metric_name in [
         ('50th Percentile Latency Microseconds', 'p50'),
@@ -336,12 +337,12 @@ def ParseNetperfOutput(stdout, metadata, benchmark_name,
       if metric_key in results:
         latency_samples.append(
             sample.Sample('%s_Latency_%s' % (benchmark_name, metric_name),
-                          float(results[metric_key]), 'us', metadata))
+                          float(results[metric_key]), 'us', metadata, instance=instance))
 
   return (throughput_sample, latency_samples, latency_hist)
 
 
-def RunNetperf(vm, benchmark_name, server_ip, num_streams):
+def RunNetperf(vm, benchmark_name, server_ip, num_streams, server_vm=None):
   """Spawns netperf on a remote VM, parses results.
 
   Args:
@@ -353,6 +354,9 @@ def RunNetperf(vm, benchmark_name, server_ip, num_streams):
   Returns:
     A sample.Sample object with the result.
   """
+  client_vm_kube_node, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  server_vm_kube_node, _, _ = server_vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  instance = client_vm_kube_node.strip().strip('\n') + "-" + server_vm_kube_node.strip().strip('\n')
   enable_latency_histograms = FLAGS.netperf_enable_histograms or num_streams > 1
   # Throughput benchmarks don't have latency histograms
   enable_latency_histograms = enable_latency_histograms and \
@@ -408,7 +412,7 @@ def RunNetperf(vm, benchmark_name, server_ip, num_streams):
               'sending_thread_count': num_streams}
 
   parsed_output = [ParseNetperfOutput(stdout, metadata, benchmark_name,
-                                      enable_latency_histograms)
+                                      enable_latency_histograms, instance)
                    for stdout in stdouts]
 
   if len(parsed_output) == 1:
@@ -440,7 +444,7 @@ def RunNetperf(vm, benchmark_name, server_ip, num_streams):
       samples.append(
           sample.Sample('%s_Throughput_%s' % (benchmark_name, stat),
                         float(value),
-                        throughput_unit, metadata))
+                        throughput_unit, metadata, instance=instance))
     if enable_latency_histograms:
       # Combine all of the latency histogram dictionaries
       latency_histogram = collections.Counter()
@@ -450,7 +454,7 @@ def RunNetperf(vm, benchmark_name, server_ip, num_streams):
       hist_metadata = {'histogram': json.dumps(latency_histogram)}
       hist_metadata.update(metadata)
       samples.append(sample.Sample(
-          '%s_Latency_Histogram' % benchmark_name, 0, 'us', hist_metadata))
+          '%s_Latency_Histogram' % benchmark_name, 0, 'us', hist_metadata, instance=instance))
       # Calculate stats on aggregate latency histogram
       latency_stats = _HistogramStatsCalculator(latency_histogram, [50, 90, 99])
       # Create samples for the latency stats
@@ -458,7 +462,7 @@ def RunNetperf(vm, benchmark_name, server_ip, num_streams):
         samples.append(
             sample.Sample('%s_Latency_%s' % (benchmark_name, stat),
                           float(value),
-                          'us', metadata))
+                          'us', metadata, instance=instance))
     return samples
 
 
@@ -490,7 +494,7 @@ def Run(benchmark_spec):
     for netperf_benchmark in FLAGS.netperf_benchmarks:
       if vm_util.ShouldRunOnExternalIpAddress():
         external_ip_results = RunNetperf(client_vm, netperf_benchmark,
-                                         server_vm.ip_address, num_streams)
+                                         server_vm.ip_address, num_streams, server_vm=server_vm)
         for external_ip_result in external_ip_results:
           external_ip_result.metadata['ip_type'] = 'external'
           external_ip_result.metadata.update(metadata)
@@ -498,7 +502,7 @@ def Run(benchmark_spec):
 
       if vm_util.ShouldRunOnInternalIpAddress(client_vm, server_vm):
         internal_ip_results = RunNetperf(client_vm, netperf_benchmark,
-                                         server_vm.internal_ip, num_streams)
+                                         server_vm.internal_ip, num_streams, server_vm=server_vm)
         for internal_ip_result in internal_ip_results:
           internal_ip_result.metadata.update(metadata)
           internal_ip_result.metadata['ip_type'] = 'internal'
