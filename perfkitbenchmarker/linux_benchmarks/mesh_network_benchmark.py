@@ -111,6 +111,7 @@ def RunNetperf(vm, benchmark_name, servers, result):
   else:
     cmd_duration_suffix = ''
   result[INSTANCE_INDEX], _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  result[INSTANCE_INDEX] = result[INSTANCE_INDEX].strip()
   for server in servers:
     if vm != server:
       cmd += ('./netperf -t '

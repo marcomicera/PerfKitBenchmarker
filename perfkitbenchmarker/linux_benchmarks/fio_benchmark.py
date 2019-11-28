@@ -612,6 +612,7 @@ def RunWithExec(vm, exec_path, remote_job_file_path, job_file_contents):
   stdout, _ = vm.RobustRemoteCommand(
       fio_command, should_log=True, timeout=FLAGS.fio_command_timeout_sec)
   instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  instance = instance.strip()
   end_time = time.time()
   bin_vals = []
   if collect_logs:

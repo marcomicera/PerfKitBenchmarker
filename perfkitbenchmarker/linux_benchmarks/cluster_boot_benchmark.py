@@ -102,6 +102,7 @@ def GetTimeToBoot(vms):
         'create_delay_sec': '%0.1f' % create_delay_sec
     }
     instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+    instance = instance.strip()
     boot_time_sec = vm.bootable_time - min_create_start_time
     max_boot_time_sec = max(max_boot_time_sec, boot_time_sec)
     samples.append(
@@ -174,6 +175,7 @@ def _MeasureReboot(vms):
         'os_type': vm.OS_TYPE
     }
     instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+    instance = instance.strip()
     os_types.add(vm.OS_TYPE)
     samples.append(
         sample.Sample('Reboot Time', reboot_times[i], 'seconds', metadata))

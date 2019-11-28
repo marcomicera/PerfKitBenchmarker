@@ -158,6 +158,7 @@ def RunSimulatedLogging(vm):
   res, _ = vm.RemoteCommand('%s %s' % (fio.FIO_CMD_PREFIX, cmd),
                             should_log=True)
   instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+  instance = instance.strip()
   results = fio.ParseResults(fio.FioParametersToJob(cmd), json.loads(res), instance=instance)
   UpdateWorkloadMetadata(results)
   return results
@@ -208,6 +209,7 @@ def RunSimulatedDatabase(vm):
     res, _ = vm.RemoteCommand('%s %s' % (fio.FIO_CMD_PREFIX, cmd),
                               should_log=True)
     instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+    instance = instance.strip()
     results.extend(
         fio.ParseResults(fio.FioParametersToJob(cmd), json.loads(res), instance=instance))
   UpdateWorkloadMetadata(results)
@@ -253,6 +255,7 @@ def RunSimulatedStreaming(vm):
     res, _ = vm.RemoteCommand('%s %s' % (fio.FIO_CMD_PREFIX, cmd),
                               should_log=True)
     instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+    instance = instance.strip()
     results.extend(
         fio.ParseResults(fio.FioParametersToJob(cmd), json.loads(res), instance=instance))
   UpdateWorkloadMetadata(results)

@@ -1201,6 +1201,7 @@ def _CreateLscpuSamples(vms):
     if vm.OS_TYPE in os_types.LINUX_OS_TYPES:
       metadata = {'node_name': vm.name}
       instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+      instance = instance.strip()
       metadata.update(vm.CheckLsCpu().data)
       samples.append(sample.Sample('lscpu', 0, '', metadata, instance=instance))
   return samples
@@ -1215,6 +1216,7 @@ def _CreateProcCpuSamples(vms):
     data = vm.CheckProcCpu()
     metadata = {'node_name': vm.name}
     instance, _, _ = vm.RemoteHostCommandWithReturnCode('cat /etc/kubenode')
+    instance = instance.strip()
     metadata.update(data.GetValues())
     samples.append(sample.Sample('proccpu', 0, '', metadata, instance=instance))
     metadata = {'node_name': vm.name}
