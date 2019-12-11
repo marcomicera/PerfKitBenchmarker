@@ -478,6 +478,8 @@ class PushgatewayPublisher(SamplePublisher):
     # However, they do not only represent metadata.
     self.metadata_labels = ['data_disk_0_size', 'fio_job', 'num_cpus', 'rw', 'vm_count', 'CPU MHz', 'CPU max MHz',
                             'CPU min MHz', 'CPU(s)', 'Thread(s) per core', 'bw_agg', 'bw_max', 'bw_min']
+    # What to prepend to job labels
+    self.job_label_prefix = 'dk8s-'
 
   def __repr__(self):
     return '<{0} pushgateway={1}>'.format(type(self).__name__, self.pushgateway)
@@ -539,7 +541,7 @@ class PushgatewayPublisher(SamplePublisher):
         g.set(sample['value'])
 
         # Exporting to a Pushgateway
-        push_to_gateway(gateway=self.pushgateway, job=sample['test'], registry=self.registry)
+        push_to_gateway(gateway=self.pushgateway, job=self.job_label_prefix + sample['test'], registry=self.registry)
 
 
 class LogPublisher(SamplePublisher):
