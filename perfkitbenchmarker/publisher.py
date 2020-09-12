@@ -479,7 +479,7 @@ class PushgatewayPublisher(SamplePublisher):
     self.metadata_labels = ['data_disk_0_size', 'fio_job', 'num_cpus', 'rw', 'vm_count', 'CPU MHz', 'CPU max MHz',
                             'CPU min MHz', 'CPU(s)', 'Thread(s) per core', 'bw_agg', 'bw_max', 'bw_min']
     # What to prepend to job labels
-    self.job_label_prefix = 'dk8s-'
+    self.job_label_prefix = 'kubemarks-'
 
   def __repr__(self):
     return '<{0} pushgateway={1}>'.format(type(self).__name__, self.pushgateway)
